@@ -15,6 +15,68 @@
   "type": "commonjs",
   "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:all": "electron-builder -mwl"
+  },
+
+  "dependencies": {
+    "electron-updater": "^6.1.7"
+  },
+
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3"
+  },
+
+  "build": {
+    "appId": "com.example.dockerapp",
+    "productName": "Docker Desktop App",
+    "asar": true,
+
+    "files": [
+      "**/*",
+      "!dist/**",
+      "!node_modules/.cache/**"
+    ],
+
+    "extraResources": [
+      "docker-compose.yml"
+    ],
+
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "your-org",
+        "repo": "your-repo"
+      }
+    ],
+
+    "win": {
+      "target": "nsis",
+      "icon": "icon.ico",
+      "signAndEditExecutable": true
+    },
+
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    },
+
+    "mac": {
+      "target": "dmg",
+      "icon": "icon.icns",
+      "category": "public.app-category.developer-tools",
+      "hardenedRuntime": true,
+      "entitlements": "entitlements.mac.plist"
+    },
+
+    "linux": {
+      "target": ["AppImage"],
+      "icon": "icon.png"
+    }
   }
 }

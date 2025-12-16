@@ -1,6 +1,6 @@
 {
   "name": "panacea-launcher",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Panacea Desktop Launcher",
   "homepage": "https://github.com/Psydonic/Panacea-Launcher#readme",
   "bugs": {
@@ -32,7 +32,7 @@
 
   "build": {
     "appId": "com.panacea.launcher",
-    "productName": "Panacea_Desktop_Launcher",
+    "productName": "Panacea Desktop Launcher",
     "asar": true,
 
     "files": [

@@ -113,8 +113,8 @@ function createMainWindow() {
 }
 
 function createTray() {
-  tray = new Tray(path.join(__dirname, "tray.png"));
-  tray.setToolTip("Docker App");
+  tray = new Tray(path.join(__dirname, "icon.png"));
+  tray.setToolTip("Panacea");
 
   tray.setContextMenu(
     Menu.buildFromTemplate([

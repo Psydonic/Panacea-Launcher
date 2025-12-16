@@ -171,7 +171,22 @@ app.whenReady().then(async () => {
   createTray();
   createLoadingWindow();
 
-  autoUpdater.on("error", err => console.error("Updater error:", err));
+  autoUpdater.on("error", (err) => {
+    console.error("Update error:", err);
+    status("Update error");
+  });
+  autoUpdater.on("checking-for-update", () => {
+    status("Checking for updates…");
+  });
+  autoUpdater.on("update-available", () => {
+    status("Update available — downloading…");
+  });
+  autoUpdater.on("update-not-available", () => {
+    status("App is up to date");
+  });
+  autoUpdater.on("update-downloaded", () => {
+    status("Update ready — restart to apply");
+  });
   autoUpdater.checkForUpdatesAndNotify();
 
   if (!(await dockerInstalled())) {

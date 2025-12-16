@@ -34,8 +34,8 @@ jobs:
       # Windows code signing
       # -------------------------
       - name: Detect Windows code signing
-        id: win-signing
         if: matrix.os == 'windows-latest'
+        id: win-signing
         shell: powershell
         run: |
           if ("${{ secrets.WIN_CSC_BASE64 }}" -ne "") {
@@ -61,8 +61,8 @@ jobs:
         if: matrix.os == 'windows-latest'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_LINK: codesign.pfx
-          CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_PASSWORD }}
+          CSC_LINK: ${{ steps.win-signing.outputs.enabled == 'true' && 'codesign.pfx' || '' }}
+          CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_PASSWORD || '' }}
         run: npm run build
 
       # -------------------------
@@ -72,9 +72,9 @@ jobs:
         if: matrix.os == 'macos-latest'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
-          CSC_NAME: ${{ secrets.MAC_CSC_NAME }}
+          APPLE_ID: ${{ secrets.APPLE_ID || '' }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD || '' }}
+          CSC_NAME: ${{ secrets.MAC_CSC_NAME || '' }}
         run: npm run build
 
       # -------------------------

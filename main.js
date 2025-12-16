@@ -1,35 +1,43 @@
-const { app, BrowserWindow, Tray, Menu, ipcMain, shell } = require("electron");
-const { exec } = require("child_process");
+const { app, BrowserWindow, Tray, Menu } = require("electron");
+const { execFile } = require("child_process");
 const path = require("path");
 const { autoUpdater } = require("electron-updater");
 
 let loadingWindow;
 let mainWindow;
 let tray;
+let quitting = false;
 
 const APP_URL = "http://localhost:3000";
 const SERVICE_NAME = "web";
+const WAIT_TIMEOUT = 60_000; // 60 seconds
 
-function run(cmd) {
+/* ---------------- Utilities ---------------- */
+
+function exec(cmd, args = []) {
   return new Promise((resolve, reject) => {
-    exec(cmd, { cwd: __dirname }, (err, stdout) => {
+    execFile(cmd, args, { cwd: __dirname }, (err, stdout) => {
       if (err) reject(err);
       else resolve(stdout.trim());
     });
   });
 }
 
+function sleep(ms) {
+  return new Promise(r => setTimeout(r, ms));
+}
+
 function status(msg) {
-  if (loadingWindow) {
+  if (loadingWindow && !loadingWindow.isDestroyed()) {
     loadingWindow.webContents.send("status", msg);
   }
 }
 
-/* ---------------- Docker checks ---------------- */
+/* ---------------- Docker ---------------- */
 
 async function dockerInstalled() {
   try {
-    await run("docker --version");
+    await exec("docker", ["--version"]);
     return true;
   } catch {
     return false;
@@ -37,50 +45,64 @@ async function dockerInstalled() {
 }
 
 async function ensureDockerRunning() {
-  try {
-    await run("docker info");
-    return;
-  } catch {}
+  const start = Date.now();
 
-  status("Starting Docker…");
-
-  if (process.platform === "win32") {
-    await run('"C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe"');
-  } else if (process.platform === "darwin") {
-    await run("open -a Docker");
-  } else {
-    await run("systemctl start docker");
-  }
-
-  while (true) {
+  while (Date.now() - start < WAIT_TIMEOUT) {
     try {
-      await run("docker info");
+      await exec("docker", ["info"]);
       return;
     } catch {
-      await new Promise(r => setTimeout(r, 1000));
+      status("Starting Docker…");
+      if (process.platform === "win32") {
+        execFile(
+          "C:\\Program Files\\Docker\\Docker\\Docker Desktop.exe",
+          [],
+          { detached: true }
+        );
+      } else if (process.platform === "darwin") {
+        await exec("open", ["-a", "Docker"]);
+      } else {
+        await exec("systemctl", ["start", "docker"]);
+      }
+      await sleep(2000);
     }
   }
+
+  throw new Error("Docker did not start in time");
 }
 
 async function startCompose() {
   status("Starting services…");
-  await run("docker compose up -d");
+  await exec("docker", ["compose", "up", "-d"]);
 }
 
 async function waitForHealthy() {
   status("Waiting for services to become healthy…");
+  const start = Date.now();
 
-  while (true) {
-    const state = await run(
-      `docker inspect --format="{{.State.Health.Status}}" ${SERVICE_NAME}`
-    );
-    if (state === "healthy") return;
-    await new Promise(r => setTimeout(r, 1000));
+  while (Date.now() - start < WAIT_TIMEOUT) {
+    try {
+      const state = await exec("docker", [
+        "inspect",
+        "--format={{.State.Health.Status}}",
+        SERVICE_NAME
+      ]);
+      if (state === "healthy") return;
+    } catch {
+      // container may not exist yet
+    }
+    await sleep(1000);
   }
+
+  throw new Error("Service did not become healthy");
 }
 
 async function stopCompose() {
-  await run("docker compose down");
+  try {
+    await exec("docker", ["compose", "down"]);
+  } catch (err) {
+    console.error("Failed to stop compose:", err);
+  }
 }
 
 /* ---------------- Windows ---------------- */
@@ -92,13 +114,17 @@ function createLoadingWindow() {
     frame: false,
     resizable: false,
     webPreferences: {
-      nodeIntegration: true
+      preload: path.join(__dirname, "preload.js"),
+      nodeIntegration: false,
+      contextIsolation: true
     }
   });
   loadingWindow.loadFile("loading.html");
 }
 
-function createErrorWindow() {
+function showError(message) {
+  if (!loadingWindow || loadingWindow.isDestroyed()) return;
+  loadingWindow.webContents.send("error", message);
   loadingWindow.loadFile("error.html");
 }
 
@@ -109,7 +135,15 @@ function createMainWindow() {
   });
 
   mainWindow.loadURL(APP_URL);
-  loadingWindow.close();
+
+  mainWindow.on("close", (e) => {
+    if (!quitting) {
+      e.preventDefault();
+      mainWindow.hide();
+    }
+  });
+
+  loadingWindow?.close();
 }
 
 function createTray() {
@@ -118,8 +152,15 @@ function createTray() {
 
   tray.setContextMenu(
     Menu.buildFromTemplate([
-      { label: "Show", click: () => mainWindow?.show() },
-      { label: "Quit", click: () => app.quit() }
+      {
+        label: "Show",
+        click: () => mainWindow?.show(),
+        enabled: () => !!mainWindow
+      },
+      {
+        label: "Quit",
+        click: () => app.quit()
+      }
     ])
   );
 }
@@ -130,33 +171,34 @@ app.whenReady().then(async () => {
   createTray();
   createLoadingWindow();
 
-  autoUpdater.on("download-progress", p => {
-    console.log(`Update ${Math.round(p.percent)}%`);
-    });
+  autoUpdater.on("error", err => console.error("Updater error:", err));
   autoUpdater.checkForUpdatesAndNotify();
 
   if (!(await dockerInstalled())) {
-    status("Docker not found");
-    createErrorWindow();
+    showError("Docker is not installed.");
     return;
   }
 
   try {
     status("Checking Docker daemon…");
     await ensureDockerRunning();
-
     await startCompose();
     await waitForHealthy();
-
     createMainWindow();
   } catch (err) {
     console.error(err);
-    app.quit();
+    showError(err.message);
   }
 });
 
 app.on("before-quit", async (e) => {
+  if (quitting) return;
   e.preventDefault();
+  quitting = true;
   await stopCompose();
-  app.exit(0);
+  app.quit();
+});
+
+app.on("window-all-closed", (e) => {
+  e.preventDefault(); // keep tray app alive
 });

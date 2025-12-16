@@ -1,0 +1,58 @@
+name: Build & Release Electron App
+
+on:
+  push:
+    tags:
+      - "v*.*.*"   # e.g. v1.0.0
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    permissions:
+      contents: write   # REQUIRED for GitHub Releases
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # -------------------------
+      # Windows code signing
+      # -------------------------
+      - name: Setup Windows code signing
+        if: matrix.os == 'windows-latest'
+        run: |
+          echo "${{ secrets.WIN_CSC_BASE64 }}" | certutil -decode -f - codesign.pfx
+        shell: powershell
+
+      # -------------------------
+      # Build & publish
+      # -------------------------
+      - name: Build and publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+          # Windows signing
+          CSC_LINK: codesign.pfx
+          CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_PASSWORD }}
+
+          # macOS signing (optional)
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+          CSC_NAME: ${{ secrets.MAC_CSC_NAME }}
+
+        run: npm run build

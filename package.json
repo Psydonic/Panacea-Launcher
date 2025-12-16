@@ -1,6 +1,6 @@
 {
   "name": "panacea-launcher",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "",
   "homepage": "https://github.com/Psydonic/Panacea-Launcher#readme",
   "bugs": {
@@ -48,8 +48,8 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "your-org",
-        "repo": "your-repo"
+        "owner": "Psydonic",
+        "repo": "Panacea-Launcher"
       }
     ],
 

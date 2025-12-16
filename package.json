@@ -31,8 +31,8 @@
   },
 
   "build": {
-    "appId": "com.example.dockerapp",
-    "productName": "Docker Desktop App",
+    "appId": "com.panacea.launcher",
+    "productName": "Panacea Desktop Launcher",
     "asar": true,
 
     "files": [

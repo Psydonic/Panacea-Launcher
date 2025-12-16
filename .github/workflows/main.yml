@@ -34,7 +34,7 @@ jobs:
       # Windows code signing
       # -------------------------
       - name: Setup Windows code signing (optional)
-        if: matrix.os == 'windows-latest' && secrets.WIN_CSC_BASE64 != ''
+        if: ${{ matrix.os == 'windows-latest' && secrets.WIN_CSC_BASE64 != '' }}
         run: |
           echo "${{ secrets.WIN_CSC_BASE64 }}" | certutil -decode -f - codesign.pfx
         shell: powershell

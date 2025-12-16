@@ -68,8 +68,3 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_LINK: ${{ env.CSC_LINK || '' }}
-          CSC_KEY_PASSWORD: ${{ env.CSC_KEY_PASSWORD || '' }}
-          APPLE_ID: ${{ env.APPLE_ID || '' }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ env.APPLE_APP_SPECIFIC_PASSWORD || '' }}
-          CSC_NAME: ${{ env.CSC_NAME || '' }}

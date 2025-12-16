@@ -33,10 +33,25 @@ jobs:
       # -------------------------
       # Windows code signing
       # -------------------------
-      - name: Setup Windows code signing (optional)
-        if: ${{ matrix.os == 'windows-latest' && secrets.WIN_CSC_BASE64 != '' }}
+      - name: Detect Windows code signing
+        id: win-signing
+        if: matrix.os == 'windows-latest'
         run: |
-          echo "${{ secrets.WIN_CSC_BASE64 }}" | certutil -decode -f - codesign.pfx
+          if ("${{ secrets.WIN_CSC_BASE64 }}" -ne "") {
+            echo "enabled=true" >> $env:GITHUB_OUTPUT
+            Write-Host "Windows code signing ENABLED"
+          } else {
+            echo "enabled=false" >> $env:GITHUB_OUTPUT
+            Write-Host "Windows code signing DISABLED (no cert)"
+          }
+        shell: powershell
+
+      - name: Install Windows signing certificate
+        if: steps.win-signing.outputs.enabled == 'true'
+        run: |
+          $bytes = [Convert]::FromBase64String("${{ secrets.WIN_CSC_BASE64 }}")
+          [IO.File]::WriteAllBytes("codesign.pfx", $bytes)
+          Write-Host "Code signing certificate written"
         shell: powershell
 
       # -------------------------

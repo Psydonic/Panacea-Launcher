@@ -24,7 +24,7 @@ jobs:
       - name: Create Git tag if missing
         id: tag
         run: |
-          TAG="v${{ steps.version.outputs.TAG }}"
+          TAG="${{ steps.version.outputs.TAG }}"
           if git ls-remote --tags origin | grep -q "refs/tags/$TAG"; then
             echo "Tag $TAG already exists. Skipping creation."
           else

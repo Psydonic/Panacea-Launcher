@@ -48,8 +48,8 @@
     "publish": [
       {
         "provider": "github",
-        "owner": "your-org",
-        "repo": "your-repo"
+        "owner": "Psydonic",
+        "repo": "Panacea-Launcher"
       }
     ],
 

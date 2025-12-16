@@ -59,23 +59,38 @@ jobs:
       # -------------------------
       - name: Build and publish (Windows)
         if: matrix.os == 'windows-latest'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          CSC_LINK: ${{ steps.win-signing.outputs.enabled == 'true' && 'codesign.pfx' || '' }}
-          CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_PASSWORD || '' }}
-        run: npm run build
+        shell: powershell
+        run: |
+          if ("${{ steps.win-signing.outputs.enabled }}" -eq "true") {
+              Write-Host "Windows signing enabled"
+              $env:CSC_LINK = "codesign.pfx"
+              $env:CSC_KEY_PASSWORD = "${{ secrets.WIN_CSC_PASSWORD }}"
+          } else {
+              Write-Host "Windows signing disabled"
+              $env:CSC_LINK = ""
+              $env:CSC_KEY_PASSWORD = ""
+          }
+          $env:GH_TOKEN = "${{ secrets.GITHUB_TOKEN }}"
+          npm run build
 
       # -------------------------
       # Build & publish (macOS)
       # -------------------------
       - name: Build and publish (macOS)
         if: matrix.os == 'macos-latest'
+        shell: bash
+        run: |
+          # Set signing variables only if secrets exist
+          [[ -n "${APPLE_ID}" && -n "${APPLE_APP_PASSWORD}" && -n "${CSC_NAME}" ]] && \
+            export APPLE_ID="${APPLE_ID}" && \
+            export APPLE_APP_SPECIFIC_PASSWORD="${APPLE_APP_PASSWORD}" && \
+            export CSC_NAME="${CSC_NAME}" || true
+          export GH_TOKEN="${{ secrets.GITHUB_TOKEN }}"
+          npm run build
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_ID: ${{ secrets.APPLE_ID || '' }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD || '' }}
+          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD || '' }}
           CSC_NAME: ${{ secrets.MAC_CSC_NAME || '' }}
-        run: npm run build
 
       # -------------------------
       # Build & publish (Linux)

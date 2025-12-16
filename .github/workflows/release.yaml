@@ -2,58 +2,21 @@ name: Build & Release Electron App
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - "v*.*.*"
   workflow_dispatch:
 
 jobs:
-  # -------------------------
-  # 1️⃣ Create tag
-  # -------------------------
-  create-tag:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    outputs:
-      TAG: ${{ steps.set-tag.outputs.TAG }}
-    steps:
-      - name: Checkout repo
-        uses: actions/checkout@v4
-
-      - name: Get version from package.json
-        id: set-version
-        run: |
-          VERSION=$(node -p "require('./package.json').version")
-          echo "VERSION=$VERSION" >> $GITHUB_ENV
-          echo "VERSION=$VERSION"
-          echo "::set-output name=TAG::v$VERSION"
-
-      - name: Create Git tag if missing
-        id: set-tag
-        run: |
-          TAG="v${{ env.VERSION }}"
-          if git ls-remote --tags origin | grep -q "refs/tags/$TAG"; then
-            echo "Tag $TAG already exists on remote. Skipping."
-          else
-            git config user.name "github-actions"
-            git config user.email "github-actions@github.com"
-            git tag -a "$TAG" -m "Release $TAG"
-            git push origin "$TAG"
-            echo "Created and pushed tag $TAG"
-          fi
-          echo "::set-output name=TAG::$TAG"
-
-  # -------------------------
-  # 2️⃣ Build matrix
-  # -------------------------
   build:
-    needs: create-tag
     strategy:
       matrix:
         os: [windows-latest, macos-latest, ubuntu-latest]
     runs-on: ${{ matrix.os }}
     permissions:
       contents: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      TAG: ${{ github.ref_name }}  # The tag that triggered the workflow
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
@@ -67,63 +30,40 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # Pass the tag from the create-tag job
-      - name: Set TAG
-        run: echo "TAG=${{ needs.create-tag.outputs.TAG }}" >> $GITHUB_ENV
-
-      # Windows code signing
-      - name: Detect Windows code signing
-        if: matrix.os == 'windows-latest'
-        id: win-signing
+      # -------------------------
+      # Platform-specific signing
+      # -------------------------
+      - name: Configure signing
+        id: signing
         shell: powershell
         run: |
-          if ("${{ secrets.WIN_CSC_BASE64 }}" -ne "") {
-            echo "enabled=true" >> $env:GITHUB_OUTPUT
-          } else {
-            echo "enabled=false" >> $env:GITHUB_OUTPUT
+          if ($env:RUNNER_OS -eq "Windows") {
+              if ("${{ secrets.WIN_CSC_BASE64 }}" -ne "") {
+                  $env:CSC_LINK = "codesign.pfx"
+                  $env:CSC_KEY_PASSWORD = "${{ secrets.WIN_CSC_PASSWORD }}"
+                  [IO.File]::WriteAllBytes("codesign.pfx", [Convert]::FromBase64String("${{ secrets.WIN_CSC_BASE64 }}"))
+              } else {
+                  $env:CSC_LINK = ""
+                  $env:CSC_KEY_PASSWORD = ""
+              }
+          } elseif ($env:RUNNER_OS -eq "macOS") {
+              if ("${{ secrets.APPLE_ID }}" -and "${{ secrets.APPLE_APP_PASSWORD }}" -and "${{ secrets.MAC_CSC_NAME }}") {
+                  $env:APPLE_ID = "${{ secrets.APPLE_ID }}"
+                  $env:APPLE_APP_SPECIFIC_PASSWORD = "${{ secrets.APPLE_APP_PASSWORD }}"
+                  $env:CSC_NAME = "${{ secrets.MAC_CSC_NAME }}"
+              }
           }
 
-      - name: Install Windows signing certificate
-        if: matrix.os == 'windows-latest' && steps.win-signing.outputs.enabled == 'true'
-        shell: powershell
-        run: |
-          $bytes = [Convert]::FromBase64String("${{ secrets.WIN_CSC_BASE64 }}")
-          [IO.File]::WriteAllBytes("codesign.pfx", $bytes)
-
-      # Build & publish (Windows)
-      - name: Build and publish (Windows)
-        if: matrix.os == 'windows-latest'
-        shell: powershell
-        run: |
-          if ("${{ steps.win-signing.outputs.enabled }}" -eq "true") {
-              $env:CSC_LINK = "codesign.pfx"
-              $env:CSC_KEY_PASSWORD = "${{ secrets.WIN_CSC_PASSWORD }}"
-          } else {
-              $env:CSC_LINK = ""
-              $env:CSC_KEY_PASSWORD = ""
-          }
-          $env:GH_TOKEN = "${{ secrets.GITHUB_TOKEN }}"
-          npm run build
-
-      # Build & publish (macOS)
-      - name: Build and publish (macOS)
-        if: matrix.os == 'macos-latest'
+      # -------------------------
+      # Build & publish
+      # -------------------------
+      - name: Build & publish
         shell: bash
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID || '' }}
-          APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD || '' }}
-          CSC_NAME: ${{ secrets.MAC_CSC_NAME || '' }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          [[ -n "$APPLE_ID" && -n "$APPLE_APP_PASSWORD" && -n "$CSC_NAME" ]] && \
-            export APPLE_ID="$APPLE_ID" && \
-            export APPLE_APP_SPECIFIC_PASSWORD="$APPLE_APP_PASSWORD" && \
-            export CSC_NAME="$CSC_NAME" || true
-          npm run build
-
-      # Build & publish (Linux)
-      - name: Build and publish (Linux)
-        if: matrix.os == 'ubuntu-latest'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm run build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_LINK: ${{ env.CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ env.CSC_KEY_PASSWORD || '' }}
+          APPLE_ID: ${{ env.APPLE_ID || '' }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ env.APPLE_APP_SPECIFIC_PASSWORD || '' }}
+          CSC_NAME: ${{ env.CSC_NAME || '' }}

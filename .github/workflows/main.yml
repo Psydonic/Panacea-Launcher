@@ -33,8 +33,8 @@ jobs:
       # -------------------------
       # Windows code signing
       # -------------------------
-      - name: Setup Windows code signing
-        if: matrix.os == 'windows-latest'
+      - name: Setup Windows code signing (optional)
+        if: matrix.os == 'windows-latest' && secrets.WIN_CSC_BASE64 != ''
         run: |
           echo "${{ secrets.WIN_CSC_BASE64 }}" | certutil -decode -f - codesign.pfx
         shell: powershell
@@ -47,8 +47,8 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
           # Windows signing
-          CSC_LINK: codesign.pfx
-          CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_PASSWORD }}
+          CSC_LINK: ${{ secrets.WIN_CSC_BASE64 && 'codesign.pfx' || '' }}
+          CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_PASSWORD || '' }}
 
           # macOS signing (optional)
           APPLE_ID: ${{ secrets.APPLE_ID }}

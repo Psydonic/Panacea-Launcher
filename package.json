@@ -18,7 +18,8 @@
     "start": "electron .",
     "build": "electron-builder",
     "build:win": "electron-builder --win",
-    "build:all": "electron-builder -mwl"
+    "build:all": "electron-builder -mwl",
+    "test": "playwright test --project electron"
   },
   "dependencies": {
     "electron-updater": "^6.1.7"

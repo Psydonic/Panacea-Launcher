@@ -30,10 +30,17 @@ jobs:
         shell: bash
 
       # -------------------------
+      # Build application
+      # -------------------------
+      - name: Build application
+        run: npm run build
+        shell: bash
+
+      # -------------------------
       # Run Playwright E2E tests
       # -------------------------
       - name: Run Playwright E2E tests
-        run: npx playwright test --project=electron
+        run: npm test
         shell: bash
         env:
           CI: true # Set CI environment variable for Playwright

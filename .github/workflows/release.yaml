@@ -61,9 +61,9 @@ jobs:
         shell: bash
 
       # -------------------------
-      # Build & publish
+      # Build Application
       # -------------------------
-      - name: Build & publish
+      - name: Build Application
         run: npm run build
         shell: bash
         env:

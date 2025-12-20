@@ -20,31 +20,26 @@
     "build:win": "electron-builder --win",
     "build:all": "electron-builder -mwl"
   },
-
   "dependencies": {
     "electron-updater": "^6.1.7"
   },
-
   "devDependencies": {
+    "@playwright/test": "^1.57.0",
     "electron": "^30.0.0",
     "electron-builder": "^24.13.3"
   },
-
   "build": {
     "appId": "com.panacea.launcher",
     "productName": "Panacea Desktop Launcher",
     "asar": true,
-
     "files": [
       "**/*",
       "!dist/**",
       "!node_modules/.cache/**"
     ],
-
     "extraResources": [
       "docker-compose.yml"
     ],
-
     "publish": [
       {
         "provider": "github",
@@ -52,20 +47,17 @@
         "repo": "Panacea-Launcher"
       }
     ],
-
     "win": {
       "target": "nsis",
       "icon": "icon.ico",
       "signAndEditExecutable": true
     },
-
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true
     },
-
     "mac": {
       "target": "dmg",
       "icon": "icon.icns",
@@ -73,9 +65,10 @@
       "hardenedRuntime": true,
       "entitlements": "entitlements.mac.plist"
     },
-
     "linux": {
-      "target": ["AppImage"],
+      "target": [
+        "AppImage"
+      ],
       "icon": "icon.png"
     }
   }

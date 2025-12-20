@@ -1,14 +1,20 @@
 
-import { test as base, expect } from '@playwright/test';
+import { test as base, expect, _electron } from '@playwright/test';
 import type { ElectronApplication } from 'playwright';
 
-// Extend the base test to include the electronApp fixture.
 export const test = base.extend<{ electronApp: ElectronApplication }>({
-  // The electronApp fixture is provided by the Playwright test runner when running in an Electron environment.
-  // This extension simply defines the type for TypeScript.
   electronApp: async ({}, use) => {
-    // This is a placeholder. The actual electronApp is provided by the test runner.
-    // The fixture function itself doesn't need to do anything here.
+    // Launch the electron app.
+    const electronApp = await _electron.launch({ args: ['.'] });
+
+    // Wait for the main window to open.
+    await electronApp.firstWindow();
+
+    // Pass the electron app to the test.
+    await use(electronApp);
+
+    // Close the app.
+    await electronApp.close();
   },
 });
 

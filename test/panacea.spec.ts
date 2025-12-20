@@ -1,5 +1,5 @@
 // test/panacea.spec.ts
-import { test, expect } from '@playwright/test';
+import { test, expect } from './electron-test';
 
 // This test suite is configured to run against the Electron app using the 'electron' project in playwright.config.ts
 

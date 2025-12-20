@@ -13,7 +13,7 @@
   "license": "ISC",
   "author": "",
   "type": "commonjs",
-  "main": "main.js",
+  "main": "src/main/index.js",
   "scripts": {
     "start": "electron .",
     "build": "electron-builder",
@@ -36,13 +36,13 @@
     "asar": true,
 
     "files": [
-      "**/*",
+      "src/**/*",
       "!dist/**",
       "!node_modules/.cache/**"
     ],
 
     "extraResources": [
-      "docker-compose.yml"
+      "docker/docker-compose.yml"
     ],
 
     "publish": [
@@ -55,7 +55,7 @@
 
     "win": {
       "target": "nsis",
-      "icon": "icon.ico",
+      "icon": "src/assets/icon.png",
       "signAndEditExecutable": true
     },
 
@@ -68,7 +68,7 @@
 
     "mac": {
       "target": "dmg",
-      "icon": "icon.icns",
+      "icon": "src/assets/icon.png",
       "category": "public.app-category.developer-tools",
       "hardenedRuntime": true,
       "entitlements": "entitlements.mac.plist"
@@ -76,7 +76,7 @@
 
     "linux": {
       "target": ["AppImage"],
-      "icon": "icon.png"
+      "icon": "src/assets/icon.png"
     }
   }
 }

@@ -11,12 +11,13 @@ let quitting = false;
 const APP_URL = "http://localhost:3000";
 const SERVICE_NAME = "web";
 const WAIT_TIMEOUT = 60_000; // 60 seconds
+const DOCKER_COMPOSE_DIR = path.resolve(app.getAppPath(), "..", "docker");
 
 /* ---------------- Utilities ---------------- */
 
 function exec(cmd, args = []) {
   return new Promise((resolve, reject) => {
-    execFile(cmd, args, { cwd: __dirname }, (err, stdout) => {
+    execFile(cmd, args, { cwd: DOCKER_COMPOSE_DIR }, (err, stdout) => {
       if (err) reject(err);
       else resolve(stdout.trim());
     });
@@ -114,24 +115,27 @@ function createLoadingWindow() {
     frame: false,
     resizable: false,
     webPreferences: {
-      preload: path.join(__dirname, "preload.js"),
+      preload: path.join(__dirname, "../preload/preload.js"),
       nodeIntegration: false,
       contextIsolation: true
     }
   });
-  loadingWindow.loadFile("loading.html");
+  loadingWindow.loadFile(path.join(__dirname, "../renderer/loading.html"));
 }
 
 function showError(message) {
   if (!loadingWindow || loadingWindow.isDestroyed()) return;
   loadingWindow.webContents.send("error", message);
-  loadingWindow.loadFile("error.html");
+  loadingWindow.loadFile(path.join(__dirname, "../renderer/error.html"));
 }
 
 function createMainWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
-    height: 800
+    height: 800,
+    webPreferences: {
+        preload: path.join(__dirname, '../preload/preload.js')
+    }
   });
 
   mainWindow.loadURL(APP_URL);
@@ -147,7 +151,7 @@ function createMainWindow() {
 }
 
 function createTray() {
-  tray = new Tray(path.join(__dirname, "icon.png"));
+  tray = new Tray(path.join(__dirname, "../assets/icon.png"));
   tray.setToolTip("Panacea");
 
   tray.setContextMenu(

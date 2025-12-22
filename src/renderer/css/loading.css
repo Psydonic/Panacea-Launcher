@@ -5,4 +5,18 @@ body {
     align-items: center;
     height: 100vh;
     margin: 0;
+    text-align: center;
+}
+
+#container {
+    width: 80%;
+}
+
+#progress {
+    width: 100%;
+    margin-top: 10px;
+}
+
+#status {
+    margin-bottom: 10px;
 }

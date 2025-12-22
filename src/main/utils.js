@@ -7,4 +7,11 @@ function status(msg) {
   }
 }
 
-module.exports = { status };
+function progress(data) {
+  const loadingWindow = getLoadingWindow();
+  if (loadingWindow && !loadingWindow.isDestroyed()) {
+    loadingWindow.webContents.send("progress", data);
+  }
+}
+
+module.exports = { status, progress };

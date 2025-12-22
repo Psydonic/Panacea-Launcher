@@ -15,21 +15,24 @@ const DOCKER_COMPOSE_DIR = path.resolve(app.getAppPath(), "..", "docker");
  */
 function exec(cmd, args = [], onData) {
   return new Promise((resolve, reject) => {
-    const child = spawn(cmd, args, { cwd: DOCKER_COMPOSE_DIR });
-    let stdout = '';
-    child.stdout.on('data', (data) => {
+    const child = spawn(cmd, args, {
+      cwd: DOCKER_COMPOSE_DIR,
+      env: process.env,
+    });
+    let stdout = "";
+    child.stdout.on("data", (data) => {
       const output = data.toString();
       if (onData) onData(output);
       stdout += output;
     });
-    child.on('close', (code) => {
+    child.on("close", (code) => {
       if (code === 0) {
         resolve(stdout.trim());
       } else {
         reject(new Error(`Command failed with exit code ${code}`));
       }
     });
-    child.on('error', (err) => {
+    child.on("error", (err) => {
       reject(err);
     });
   });

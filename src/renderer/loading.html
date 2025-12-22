@@ -2,25 +2,12 @@
 <html>
 <head>
     <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';">
     <title>Panacea Launcher</title>
-    <style>
-        body {
-            font-family: sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-    </style>
+    <link rel="stylesheet" href="css/loading.css">
 </head>
 <body>
     <p id="status">Starting...</p>
-    <script>
-        const status = document.getElementById('status');
-        window.electronAPI.onStatus((event, message) => {
-            status.innerText = message;
-        });
-    </script>
+    <script src="js/loading.js"></script>
 </body>
 </html>

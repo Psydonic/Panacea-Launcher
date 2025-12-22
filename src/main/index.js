@@ -4,6 +4,8 @@ const { createLoadingWindow, showError, createMainWindow, getMainWindow } = requ
 const { createTray } = require("./tray");
 const { setupUpdater } = require("./updater");
 
+process.env.APP_DATA_PATH = app.getPath("userData");
+
 let quitting = false;
 
 /* ---------------- App lifecycle ---------------- */

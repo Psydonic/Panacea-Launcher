@@ -6,6 +6,13 @@ const { status, progress } = require("./utils");
 
 const DOCKER_COMPOSE_DIR = path.resolve(app.getAppPath(), "..", "docker");
 
+/**
+ * Executes a command and returns the output.
+ * @param {string} cmd - The command to execute.
+ * @param {string[]} args - The arguments to pass to the command.
+ * @param {function(string): void} onData - A callback to handle data as it's received.
+ * @returns {Promise<string>} - A promise that resolves with the command's stdout.
+ */
 function exec(cmd, args = [], onData) {
   return new Promise((resolve, reject) => {
     const child = spawn(cmd, args, { cwd: DOCKER_COMPOSE_DIR });
@@ -28,6 +35,10 @@ function exec(cmd, args = [], onData) {
   });
 }
 
+/**
+ * Starts the docker-compose services.
+ * @returns {Promise<void>} - A promise that resolves when the services have started.
+ */
 async function startCompose() {
   status("Starting services…");
   const layerRegex = /\[\s*(\d+\s*of\s*\d+)\s*\]\s*Pulling\s*fs\s*layer/;
@@ -45,6 +56,10 @@ async function startCompose() {
   });
 }
 
+/**
+ * Waits for the main service to become healthy.
+ * @returns {Promise<void>} - A promise that resolves when the service is healthy.
+ */
 async function waitForHealthy() {
   status("Waiting for services to become healthy…");
   const start = Date.now();
@@ -66,6 +81,10 @@ async function waitForHealthy() {
   throw new Error("Service did not become healthy");
 }
 
+/**
+ * Stops the docker-compose services.
+ * @returns {Promise<void>} - A promise that resolves when the services have been stopped.
+ */
 async function stopCompose() {
   try {
     await exec("docker", ["compose", "down"]);
@@ -74,10 +93,19 @@ async function stopCompose() {
   }
 }
 
+/**
+ * Pauses execution for a specified amount of time.
+ * @param {number} ms - The number of milliseconds to sleep.
+ * @returns {Promise<void>} - A promise that resolves after the specified time.
+ */
 function sleep(ms) {
   return new Promise(r => setTimeout(r, ms));
 }
 
+/**
+ * Checks if docker is installed.
+ * @returns {Promise<boolean>} - A promise that resolves with true if docker is installed, false otherwise.
+ */
 async function dockerInstalled() {
   try {
     await exec("docker", ["--version"]);
@@ -87,6 +115,10 @@ async function dockerInstalled() {
   }
 }
 
+/**
+ * Ensures that docker is running.
+ * @returns {Promise<void>} - A promise that resolves when docker is running.
+ */
 async function ensureDockerRunning() {
   const start = Date.now();
 

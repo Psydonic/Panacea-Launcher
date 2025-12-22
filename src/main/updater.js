@@ -1,6 +1,9 @@
 const { autoUpdater } = require("electron-updater");
 const { status } = require("./utils");
 
+/**
+ * Sets up the auto-updater to check for updates and notify the user.
+ */
 function setupUpdater() {
   autoUpdater.on("error", (err) => {
     console.error("Update error:", err);

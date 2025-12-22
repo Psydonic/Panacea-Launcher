@@ -66,15 +66,23 @@ async function startCompose() {
 async function waitForHealthy() {
   status("Waiting for services to become healthy…");
   const start = Date.now();
-
+  
   while (Date.now() - start < WAIT_TIMEOUT) {
     try {
-      const state = await exec("docker", [
-        "inspect",
-        "--format={{.State.Health.Status}}",
-        SERVICE_NAME
+      const containerId = await exec("docker", [
+        "compose",
+        "ps",
+        "-q",
+        SERVICE_NAME,
       ]);
-      if (state === "healthy") return;
+      if (containerId) {
+        const state = await exec("docker", [
+          "inspect",
+          "--format={{.State.Health.Status}}",
+          containerId,
+        ]);
+        if (state === "healthy") return;
+      }
     } catch {
       // container may not exist yet
     }

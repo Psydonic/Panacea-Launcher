@@ -4,7 +4,9 @@ const path = require("path");
 const { WAIT_TIMEOUT, SERVICE_NAME } = require("./config");
 const { status, progress } = require("./utils");
 
-const DOCKER_COMPOSE_DIR = path.resolve(app.getAppPath(), "..", "docker");
+const DOCKER_COMPOSE_DIR = app.isPackaged
+  ? path.resolve(app.getAppPath(), "..", "docker")
+  : path.resolve(app.getAppPath(), "docker");
 
 /**
  * Executes a command and returns the output.

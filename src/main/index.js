@@ -1,4 +1,4 @@
-const { app, ipcMain } = require("electron");
+const { app } = require("electron");
 const { dockerInstalled, ensureDockerRunning, startCompose, waitForHealthy, stopCompose } = require("./docker");
 const { createLoadingWindow, showError, createMainWindow, getMainWindow } = require("./windows");
 const { createTray } = require("./tray");
@@ -22,18 +22,6 @@ app.whenReady().then(async () => {
   createLoadingWindow();
 
   setupUpdater();
-
-  ipcMain.handle('app:info', () => ({
-    name: app.getName(),
-    version: app.getVersion()
-  }));
-
-  ipcMain.handle('window:isFocused', () => {
-    const mainWindow = getMainWindow();
-    return mainWindow ? mainWindow.isFocused() : false;
-  });
-
-  ipcMain.handle('app:data', () => {});
 
   if (!(await dockerInstalled())) {
     showError("Docker is not installed.");

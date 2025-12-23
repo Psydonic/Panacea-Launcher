@@ -1,4 +1,4 @@
-const { BrowserWindow } = require("electron");
+const { BrowserWindow, app } = require("electron");
 const path = require("path");
 const { APP_URL } = require("./config");
 
@@ -53,7 +53,7 @@ function createMainWindow() {
   mainWindow.loadURL(APP_URL);
 
   mainWindow.on("close", (e) => {
-    if (!quitting) {
+    if (!app.isQuitting) {
       e.preventDefault();
       mainWindow.hide();
     }

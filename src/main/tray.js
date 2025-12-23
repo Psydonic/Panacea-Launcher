@@ -17,8 +17,18 @@ function createTray(app, getMainWindow) {
     Menu.buildFromTemplate([
       {
         label: "Show",
-        click: () => getMainWindow()?.show(),
-        enabled: () => !!getMainWindow(),
+        click: () => {
+          const mainWindow = getMainWindow();
+          if (!mainWindow) return;
+          if (mainWindow.isMinimized()) {
+            mainWindow.restore();
+          }
+          mainWindow.show();
+          mainWindow.focus();
+        },
+        get enabled() {
+          return !!getMainWindow();
+        },
       },
       {
         label: "Quit",

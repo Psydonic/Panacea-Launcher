@@ -6,7 +6,7 @@ const { setupUpdater } = require("./updater");
 
 process.env.APP_DATA_PATH = app.getPath("userData");
 
-let quitting = false;
+app.isQuitting = false;
 
 /* ---------------- App lifecycle ---------------- */
 
@@ -45,9 +45,9 @@ app.whenReady().then(async () => {
  * Calling event.preventDefault() will prevent the default behavior, which is terminating the application.
  */
 app.on("before-quit", async (e) => {
-  if (quitting) return;
+  if (app.isQuitting) return;
   e.preventDefault();
-  quitting = true;
+  app.isQuitting = true;
   await stopCompose();
   app.quit();
 });

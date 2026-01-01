@@ -8,10 +8,12 @@ services:
       - "8080:8080"
     environment:
       - DATABASE_URL=postgresql://postgres:password@postgres:5432/postgres
+      - OLLAMA_BASE_URL=http://ollama:11434
     volumes:
       - ${APP_DATA_PATH}/openwebui:/app/backend/data
     depends_on:
       - postgres
+      - ollama
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
       interval: 10s
@@ -30,6 +32,29 @@ services:
       - ${APP_DATA_PATH}/postgres:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama
+    volumes:
+      - ${APP_DATA_PATH}/ollama:/root/.ollama
+    environment:
+      - OLLAMA_MODEL=${OLLAMA_MODEL:-stable-code:3b}
+    entrypoint: |
+      /bin/sh -c '
+        /bin/ollama serve &
+        while ! curl -s -f http://localhost:11434 > /dev/null; do
+          sleep 1
+        done
+        /bin/ollama pull $$OLLAMA_MODEL
+        wait
+      '
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434"]
       interval: 10s
       timeout: 5s
       retries: 5

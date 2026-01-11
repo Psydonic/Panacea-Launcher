@@ -1,7 +1,8 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  send: (channel, data) => ipcRenderer.send(channel, data),
+  send: (payload) => ipcRenderer.send(payload.type, payload),
+  load: (page) => ipcRenderer.send('load-page', page),
   onStatus: (callback) => ipcRenderer.on('status', callback),
   onProgress: (callback) => ipcRenderer.on('progress', callback),
   onError: (callback) => ipcRenderer.on('error', callback)

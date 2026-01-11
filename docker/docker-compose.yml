@@ -9,6 +9,7 @@ services:
       - OPENAI_API_BASE_URL=http://model-runner.docker.internal/engines/llama.cpp/v1/
       - WEBUI_AUTH=false
       - ENABLE_OLLAMA_API=false
+      - ENABLE_PERSISTENT_CONFIG=false
     volumes:
       - ${APP_DATA_PATH}/openwebui:/app/backend/data
     depends_on:

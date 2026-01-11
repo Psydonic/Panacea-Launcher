@@ -1,5 +1,12 @@
 # Panacea-Launcher
 
+## Windows requirements
+
+- Docker Desktop
+- WSL2
+- Latest Graphics Drivers Installed
+- WSL2 Backend enabled in Docker Desktop
+
 ## Build and Run
 
 ### Install Dependencies

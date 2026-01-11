@@ -1,5 +1,5 @@
 const { app } = require("electron");
-const { dockerInstalled, ensureDockerRunning, startCompose, waitForHealthy, stopCompose } = require("./docker");
+const { dockerInstalled, pullModel, ensureDockerRunning, startCompose, waitForHealthy, stopCompose } = require("./docker");
 const { createLoadingWindow, showError, createMainWindow, getMainWindow } = require("./windows");
 const { createTray } = require("./tray");
 const { setupUpdater } = require("./updater");
@@ -31,6 +31,7 @@ app.whenReady().then(async () => {
   try {
     console.log("Checking Docker daemon…");
     await ensureDockerRunning();
+    await pullModel();
     await startCompose();
     await waitForHealthy();
     createMainWindow();

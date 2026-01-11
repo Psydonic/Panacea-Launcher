@@ -1,7 +1,7 @@
 const { spawn } = require("child_process");
 const { app } = require("electron");
 const path = require("path");
-const { WAIT_TIMEOUT, SERVICE_NAME } = require("./config");
+const { WAIT_TIMEOUT, SERVICE_NAME, MODEL_NAME } = require("./config");
 const { status, progress } = require("./utils");
 
 const DOCKER_COMPOSE_DIR = app.isPackaged
@@ -158,6 +158,25 @@ async function ensureDockerRunning() {
 
   throw new Error("Docker did not start in time");
 }
+
+// Function to pull configured model from ./config
+// docker model pull <configured model>
+
+/**
+ * Pulls the configured model using the docker CLI.
+ * @returns {Promise<void>} - A promise that resolves when the model has been pulled.
+ */
+async function pullModel() {
+  status("Pulling model…");
+  await exec("docker", ["model", "pull", MODEL_NAME], (data) => {
+    const progressRegex = /(\d+(\.\d+)?)\s*%/;
+    const progressMatch = data.match(progressRegex);
+    if (progressMatch) {
+      progress({ percent: parseFloat(progressMatch[1]) });
+    }
+  });
+}
+  
 
 module.exports = {
   dockerInstalled,

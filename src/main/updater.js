@@ -21,6 +21,7 @@ function setupUpdater() {
   autoUpdater.on("update-downloaded", () => {
     status("Update ready — restart to apply");
   });
+  autoUpdater.allowPrerelease = true;
   autoUpdater.checkForUpdatesAndNotify();
 }
 

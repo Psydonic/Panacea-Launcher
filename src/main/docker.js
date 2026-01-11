@@ -184,4 +184,5 @@ module.exports = {
   startCompose,
   waitForHealthy,
   stopCompose,
+  pullModel,
 };

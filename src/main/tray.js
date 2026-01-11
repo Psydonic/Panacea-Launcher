@@ -1,5 +1,5 @@
-const { Tray, Menu } = require("electron");
-const path = require("path");
+import { Tray, Menu } from "electron";
+import { join } from "path";
 
 let tray;
 
@@ -10,7 +10,7 @@ let tray;
  * @returns {Tray} - The tray icon.
  */
 function createTray(app, getMainWindow) {
-  tray = new Tray(path.join(__dirname, "../assets/icon.png"));
+  tray = new Tray(join(__dirname, "../assets/icon.png"));
   tray.setToolTip("Panacea");
 
   tray.setContextMenu(
@@ -39,4 +39,4 @@ function createTray(app, getMainWindow) {
   return tray;
 }
 
-module.exports = { createTray };
+export default { createTray };

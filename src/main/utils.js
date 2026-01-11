@@ -1,4 +1,4 @@
-const { getLoadingWindow } = require("./windows");
+import { getLoadingWindow } from "./windows";
 
 /**
  * Sends a status message to the loading window.
@@ -22,4 +22,4 @@ function progress(data) {
   }
 }
 
-module.exports = { status, progress };
+export default { status, progress };

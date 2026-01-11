@@ -1,6 +1,6 @@
-const { BrowserWindow, app } = require("electron");
-const path = require("path");
-const { APP_URL } = require("./config");
+import { BrowserWindow, app } from "electron";
+import { join } from "path";
+import { APP_URL } from "./config";
 
 let loadingWindow;
 let mainWindow;
@@ -16,12 +16,12 @@ function createLoadingWindow() {
     frame: false,
     resizable: false,
     webPreferences: {
-      preload: path.join(__dirname, "../preload/preload.js"),
+      preload: join(__dirname, "../preload/preload.js"),
       nodeIntegration: false,
       contextIsolation: true,
     },
   });
-  loadingWindow.loadFile(path.join(__dirname, "../renderer/loading.html"));
+  loadingWindow.loadFile(join(__dirname, "../renderer/loading.html"));
   return loadingWindow;
 }
 
@@ -32,7 +32,7 @@ function createLoadingWindow() {
 function showError(message) {
   if (!loadingWindow || loadingWindow.isDestroyed()) return;
   loadingWindow.webContents.send("error", message);
-  loadingWindow.loadFile(path.join(__dirname, "../renderer/error.html"));
+  loadingWindow.loadFile(join(__dirname, "../renderer/error.html"));
 }
 
 /**
@@ -44,7 +44,7 @@ function createMainWindow() {
     width: 1200,
     height: 800,
     webPreferences: {
-      preload: path.join(__dirname, "../preload/preload.js"),
+      preload: join(__dirname, "../preload/preload.js"),
       nodeIntegration: false,
       contextIsolation: true,
     },
@@ -63,7 +63,7 @@ function createMainWindow() {
   return mainWindow;
 }
 
-module.exports = {
+export default {
   createLoadingWindow,
   showError,
   createMainWindow,

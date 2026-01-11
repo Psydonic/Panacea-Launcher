@@ -12,11 +12,10 @@
   },
   "license": "ISC",
   "author": "",
-  "type": "commonjs",
+  "type": "module",
   "main": "src/main/index.js",
   "scripts": {
     "start": "electron .",
-    "lint": "eslint .",
     "build": "electron-builder",
     "build:win": "electron-builder --win",
     "build:all": "electron-builder -mwl"
@@ -25,11 +24,8 @@
     "electron-updater": "^6.1.7"
   },
   "devDependencies": {
-    "electron": "^30.0.0",
-    "electron-builder": "^24.13.3",
-    "eslint": "^9.39.2",
-    "eslint-plugin-n": "^17.23.1",
-    "globals": "^16.5.0"
+    "electron": "^39.2.7",
+    "electron-builder": "^26.0.0"
   },
   "build": {
     "appId": "com.panacea.launcher",

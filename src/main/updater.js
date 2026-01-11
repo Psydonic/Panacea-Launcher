@@ -1,5 +1,5 @@
-const { autoUpdater } = require("electron-updater");
-const { status } = require("./utils");
+import { autoUpdater } from "electron-updater";
+import { status } from "./utils";
 
 /**
  * Sets up the auto-updater to check for updates and notify the user.
@@ -24,4 +24,4 @@ function setupUpdater() {
   autoUpdater.checkForUpdatesAndNotify();
 }
 
-module.exports = { setupUpdater };
+export default { setupUpdater };

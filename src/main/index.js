@@ -1,8 +1,8 @@
-const { app } = require("electron");
-const { dockerInstalled, ensureDockerRunning, startCompose, waitForHealthy, stopCompose } = require("./docker");
-const { createLoadingWindow, showError, createMainWindow, getMainWindow } = require("./windows");
-const { createTray } = require("./tray");
-const { setupUpdater } = require("./updater");
+import { app } from "electron";
+import { dockerInstalled, ensureDockerRunning, startCompose, waitForHealthy, stopCompose } from "./docker";
+import { createLoadingWindow, showError, createMainWindow, getMainWindow } from "./windows";
+import { createTray } from "./tray";
+import { setupUpdater } from "./updater";
 
 process.env.APP_DATA_PATH = app.getPath("userData");
 

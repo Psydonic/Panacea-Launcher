@@ -1,12 +1,12 @@
-const { spawn } = require("child_process");
-const { app } = require("electron");
-const path = require("path");
-const { WAIT_TIMEOUT, SERVICE_NAME } = require("./config");
-const { status, progress } = require("./utils");
+import { spawn } from "child_process";
+import { app } from "electron";
+import { resolve as _resolve } from "path";
+import { WAIT_TIMEOUT, SERVICE_NAME } from "./config";
+import { status, progress } from "./utils";
 
 const DOCKER_COMPOSE_DIR = app.isPackaged
-  ? path.resolve(app.getAppPath(), "..", "docker")
-  : path.resolve(app.getAppPath(), "docker");
+  ? _resolve(app.getAppPath(), "..", "docker")
+  : _resolve(app.getAppPath(), "docker");
 
 /**
  * Executes a command and returns the output.
@@ -159,7 +159,7 @@ async function ensureDockerRunning() {
   throw new Error("Docker did not start in time");
 }
 
-module.exports = {
+export default {
   dockerInstalled,
   ensureDockerRunning,
   startCompose,

@@ -1,5 +1,3 @@
-module.exports = {
-  APP_URL: "http://localhost:8080",
-  SERVICE_NAME: "panacea",
-  WAIT_TIMEOUT: 60_000, // 60 seconds
-};
+export const APP_URL = "http://localhost:8080";
+export const SERVICE_NAME = "panacea";
+export const WAIT_TIMEOUT = 60000;

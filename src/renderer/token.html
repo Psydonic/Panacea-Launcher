@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Enter GitHub PAT</title>
+    <link rel="stylesheet" href="../css/token.css" />
+  </head>
+  <body>
+    <div class="container">
+      <h1>GitHub Personal Access Token</h1>
+      <p>Please enter your GitHub Personal Access Token (PAT) to log in to the container registry. This is required to pull the LLM model.</p>
+      <input type="password" id="patInput" placeholder="ghp_************************************" autofocus />
+      <button id="submitPat">Submit</button>
+      <p id="errorMessage" class="error-message"></p>
+      <p class="note">Your token will be securely stored and encrypted.</p>
+    </div>
+    <script src="../js/token.js"></script>
+  </body>
+</html>

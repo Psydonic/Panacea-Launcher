@@ -1,7 +1,7 @@
 const { spawn } = require("child_process");
 const { app } = require("electron");
 const path = require("path");
-const { WAIT_TIMEOUT, SERVICE_NAME, MODEL_NAME } = require("./config");
+const { WAIT_TIMEOUT, SERVICE_NAME, MODEL_NAME, GITHUB_USER, GITHUB_REGISTRY } = require("./config");
 const { status, progress } = require("./utils");
 
 const DOCKER_COMPOSE_DIR = app.isPackaged
@@ -36,6 +36,56 @@ function exec(cmd, args = [], onData) {
     });
     child.on("error", (err) => {
       reject(err);
+    });
+  });
+}
+
+/**
+ * Securely logs into the GitHub Container Registry using a Personal Access Token.
+ * The token is passed via stdin to avoid exposing it in process lists.
+ * @param {string} token - The GitHub Personal Access Token.
+ * @returns {Promise<{success: boolean, reason: 'network' | 'auth' | 'unknown'}>} - Resolves with login status and reason.
+ */
+function loginToGithubRegistry(token) {
+  return new Promise((resolve) => {
+    status("Logging into GitHub Container Registry…");
+    const child = spawn(
+      "docker",
+      ["login", GITHUB_REGISTRY, "-u", GITHUB_USER, "--password-stdin"],
+      {
+        cwd: DOCKER_COMPOSE_DIR,
+        env: process.env,
+      }
+    );
+
+    let stderr = "";
+    child.stderr.on("data", (data) => {
+      stderr += data.toString();
+    });
+
+    child.stdin.write(token);
+    child.stdin.end();
+
+    child.on("close", (code) => {
+      if (code === 0) {
+        console.log("Successfully logged into GitHub Container Registry.");
+        resolve({ success: true, reason: null });
+      } else {
+        console.error(`Docker login failed with exit code ${code}. Stderr: ${stderr}`);
+        if (stderr.includes("net/http") || stderr.includes("dial tcp")) {
+          resolve({ success: false, reason: 'network' });
+        } else if (stderr.includes("denied") || stderr.includes("unauthorized")) {
+          resolve({ success: false, reason: 'auth' });
+        } else {
+          resolve({ success: false, reason: 'unknown' });
+        }
+      }
+    });
+
+    child.on("error", (err) => {
+      console.error("Docker login spawn error:", err);
+      // A spawn error is likely a system/network issue
+      resolve({ success: false, reason: 'network' });
     });
   });
 }
@@ -185,4 +235,5 @@ module.exports = {
   waitForHealthy,
   stopCompose,
   pullModel,
+  loginToGithubRegistry,
 };

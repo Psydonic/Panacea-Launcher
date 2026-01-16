@@ -5,5 +5,4 @@ contextBridge.exposeInMainWorld('electronAPI', {
   load: (page) => ipcRenderer.send('load-page', page),
   onStatus: (callback) => ipcRenderer.on('status', callback),
   onProgress: (callback) => ipcRenderer.on('progress', callback),
-  onError: (callback) => ipcRenderer.on('error', callback)
 });

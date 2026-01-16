@@ -1,6 +1,6 @@
 const { app, ipcMain } = require("electron");
 const { dockerInstalled, pullModel, ensureDockerRunning, startCompose, waitForHealthy, stopCompose, loginToGithubRegistry } = require("./docker");
-const { createLoadingWindow, showError, createMainWindow, getMainWindow, createTokenWindow, getLoadingWindow } = require("./windows");
+const { createLoadingWindow, showError, createMainWindow, getMainWindow, createTokenWindow } = require("./windows");
 const { createTray } = require("./tray");
 const { setupUpdater } = require("./updater");
 const auth = require("./auth");
@@ -40,10 +40,10 @@ async function handleAuthentication() {
   }
 
   // Make the token window modal to the loading window to prevent UI flicker
-  const tokenWindow = createTokenWindow({ parent: getLoadingWindow(), errorMessage });
+  const tokenWindow = createTokenWindow({ errorMessage });
 
-  return new Promise(resolve => {
-    const listener = async (event, newToken) => {
+  return new Promise((resolve) => {
+    ipcMain.once("submit-token", async (event, newToken) => {
       const submissionLoginResult = await loginToGithubRegistry(newToken);
       if (submissionLoginResult.success) {
         try {
@@ -61,20 +61,20 @@ async function handleAuthentication() {
           resolve(false);
         }
       } else {
-        let failureMessage = 'Login failed. Please check the token and try again.';
-        if (submissionLoginResult.reason === 'network') {
-          failureMessage = 'Network error. Please check your internet and try again.';
+        let failureMessage =
+          "Login failed. Please check the token and try again.";
+        if (submissionLoginResult.reason === "network") {
+          failureMessage =
+            "Network error. Please check your internet and try again.";
         }
-        tokenWindow.webContents.send('set-initial-error', failureMessage);
+        tokenWindow.webContents.send("set-initial-error", failureMessage);
       }
-    };
+    });
 
-    ipcMain.once('submit-token', listener);
-
-    tokenWindow.on('closed', () => {
+    tokenWindow.on("closed", () => {
       // If the window is closed, the listener might still be waiting.
       // We remove it to prevent leaks and resolve false.
-      ipcMain.removeListener('submit-token', listener);
+      ipcMain.removeListener("submit-token", () => {});
       resolve(false);
     });
   });

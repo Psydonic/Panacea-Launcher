@@ -22,7 +22,10 @@ function setupUpdater() {
     status("Update ready — restart to apply");
   });
   autoUpdater.allowPrerelease = true;
-  autoUpdater.checkForUpdatesAndNotify();
+  autoUpdater.checkForUpdatesAndNotify().catch(err => {
+    // This is common in development.
+    console.warn("Could not check for updates:", err.message);
+  });
 }
 
 module.exports = { setupUpdater };

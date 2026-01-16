@@ -1,9 +1,6 @@
-const error = document.getElementById('error');
-/**
- * Handles the 'error' event from the main process.
- * @param {import('electron').IpcRendererEvent} event - The event object.
- * @param {string} message - The error message.
- */
-window.electronAPI.onError((event, message) => {
-    error.innerText = message;
-});
+const error = document.getElementById("error");
+const urlParams = new URLSearchParams(window.location.search);
+const message = urlParams.get("message");
+if (message) {
+  error.innerText = message;
+}

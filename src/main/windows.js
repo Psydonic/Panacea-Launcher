@@ -1,4 +1,4 @@
-const { BrowserWindow, ipcMain, app } = require("electron");
+const { BrowserWindow, app } = require("electron");
 const path = require("path");
 const { APP_URL } = require("./config");
 
@@ -23,6 +23,9 @@ function createLoadingWindow() {
     },
   });
   loadingWindow.loadFile(path.join(__dirname, "../renderer/loading.html"));
+  loadingWindow.on("closed", () => {
+    loadingWindow = null;
+  });
   return loadingWindow;
 }
 
@@ -32,8 +35,9 @@ function createLoadingWindow() {
  */
 function showError(message) {
   if (!loadingWindow || loadingWindow.isDestroyed()) return;
-  loadingWindow.webContents.send("error", message);
-  loadingWindow.loadFile(path.join(__dirname, "../renderer/error.html"));
+  loadingWindow.loadFile(path.join(__dirname, "../renderer/error.html"), {
+    query: { message },
+  });
 }
 
 /**
@@ -69,17 +73,14 @@ function createMainWindow() {
  * @param {{parent: BrowserWindow, errorMessage?: string}} options - The parent window and an optional error message.
  * @returns {BrowserWindow} The token input window.
  */
-function createTokenWindow({ parent, errorMessage }) {
-  if (loadingWindow && !loadingWindow.isDestroyed()) {
-    loadingWindow.close();
-  }
+function createTokenWindow({ errorMessage }) {
   tokenWindow = new BrowserWindow({
     width: 500,
     height: 350,
     frame: true,
     resizable: false,
     modal: true,
-    parent: parent || null, // Make it modal to the main window if it exists
+    parent: loadingWindow,
     webPreferences: {
       preload: path.join(__dirname, "../preload/tokenPreload.js"),
       nodeIntegration: false,
@@ -112,14 +113,5 @@ module.exports = {
    * @returns {BrowserWindow} - The main window.
    */
   getMainWindow: () => mainWindow,
-  /**
-   * Returns the loading window.
-   * @returns {BrowserWindow} - The loading window.
-   */
   getLoadingWindow: () => loadingWindow,
-  /**
-   * Returns the token window.
-   * @returns {BrowserWindow} - The token window.
-   */
-  getTokenWindow: () => tokenWindow,
 };

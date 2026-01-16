@@ -74,9 +74,6 @@ function createMainWindow() {
  * @returns {BrowserWindow} The token input window.
  */
 function createTokenWindow({ errorMessage }) {
-  if (loadingWindow && !loadingWindow.isDestroyed()) {
-    loadingWindow.close();
-  }
   tokenWindow = new BrowserWindow({
     width: 500,
     height: 350,

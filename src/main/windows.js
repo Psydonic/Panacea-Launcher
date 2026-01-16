@@ -23,6 +23,9 @@ function createLoadingWindow() {
     },
   });
   loadingWindow.loadFile(path.join(__dirname, "../renderer/loading.html"));
+  loadingWindow.on("closed", () => {
+    loadingWindow = null;
+  });
   return loadingWindow;
 }
 

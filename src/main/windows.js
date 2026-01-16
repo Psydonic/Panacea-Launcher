@@ -116,4 +116,5 @@ module.exports = {
    * @returns {BrowserWindow} - The main window.
    */
   getMainWindow: () => mainWindow,
+  getLoadingWindow: () => loadingWindow,
 };

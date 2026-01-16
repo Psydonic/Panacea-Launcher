@@ -1,9 +1,10 @@
 const { app, ipcMain } = require("electron");
 const { dockerInstalled, pullModel, ensureDockerRunning, startCompose, waitForHealthy, stopCompose, loginToGithubRegistry } = require("./docker");
-const { createLoadingWindow, showError, createMainWindow, getMainWindow, createTokenWindow, getTokenWindow } = require("./windows");
+const { createLoadingWindow, showError, createMainWindow, getMainWindow, createTokenWindow, getLoadingWindow } = require("./windows");
 const { createTray } = require("./tray");
 const { setupUpdater } = require("./updater");
 const auth = require("./auth");
+const { status } = require("./utils");
 
 process.env.APP_DATA_PATH = app.getPath("userData");
 
@@ -30,6 +31,7 @@ async function handleAuthentication() {
     }
   }
 
+  status("Awaiting GitHub authentication...");
   let errorMessage;
   if (loginResult.reason === 'auth') {
     errorMessage = "Stored token is invalid or expired. Please enter a new one.";
@@ -37,17 +39,27 @@ async function handleAuthentication() {
     errorMessage = "Network error. Please check your internet and try again.";
   }
 
-  const tokenWindow = createTokenWindow({ parent: getMainWindow(), errorMessage });
+  // Make the token window modal to the loading window to prevent UI flicker
+  const tokenWindow = createTokenWindow({ parent: getLoadingWindow(), errorMessage });
 
   return new Promise(resolve => {
-    ipcMain.once('submit-token', async (event, newToken) => {
+    const listener = async (event, newToken) => {
       const submissionLoginResult = await loginToGithubRegistry(newToken);
       if (submissionLoginResult.success) {
-        auth.setToken(newToken);
-        if (tokenWindow && !tokenWindow.isDestroyed()) {
-          tokenWindow.close();
+        try {
+          auth.setToken(newToken);
+          if (tokenWindow && !tokenWindow.isDestroyed()) {
+            tokenWindow.close();
+          }
+          resolve(true);
+        } catch (err) {
+          // This happens if safeStorage is unavailable
+          showError(err.message);
+          if (tokenWindow && !tokenWindow.isDestroyed()) {
+            tokenWindow.close();
+          }
+          resolve(false);
         }
-        resolve(true);
       } else {
         let failureMessage = 'Login failed. Please check the token and try again.';
         if (submissionLoginResult.reason === 'network') {
@@ -55,11 +67,15 @@ async function handleAuthentication() {
         }
         tokenWindow.webContents.send('set-initial-error', failureMessage);
       }
-    });
+    };
+
+    ipcMain.once('submit-token', listener);
 
     tokenWindow.on('closed', () => {
-      ipcMain.removeAllListeners('submit-token');
-      resolve(false); // Resolve with false if the user closes the window
+      // If the window is closed, the listener might still be waiting.
+      // We remove it to prevent leaks and resolve false.
+      ipcMain.removeListener('submit-token', listener);
+      resolve(false);
     });
   });
 }
@@ -73,7 +89,7 @@ async function handleAuthentication() {
  */
 app.whenReady().then(async () => {
   createTray(app, getMainWindow);
-  const loading = createLoadingWindow();
+  createLoadingWindow();
 
   try {
     setupUpdater();
@@ -86,19 +102,18 @@ app.whenReady().then(async () => {
     console.log("Checking Docker daemon…");
     await ensureDockerRunning();
     
-    loading?.close(); // Close loading window before auth
     const isAuthenticated = await handleAuthentication();
 
     if (!isAuthenticated) {
+      // showError will close the loading window and show the error window
       showError("GitHub authentication is required to proceed.");
       return;
     }
 
-    createLoadingWindow(); // Re-open for pulling model etc.
     await pullModel();
     await startCompose();
     await waitForHealthy();
-    createMainWindow();
+    createMainWindow(); // This closes the loading window
 
   } catch (err) {
     console.error(err);

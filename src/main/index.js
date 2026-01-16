@@ -43,7 +43,7 @@ async function handleAuthentication() {
   const tokenWindow = createTokenWindow({ errorMessage });
 
   return new Promise((resolve) => {
-    ipcMain.once("submit-token", async (event, newToken) => {
+    const handleSubmitToken = async (event, newToken) => {
       const submissionLoginResult = await loginToGithubRegistry(newToken);
       if (submissionLoginResult.success) {
         try {
@@ -67,16 +67,23 @@ async function handleAuthentication() {
           failureMessage =
             "Network error. Please check your internet and try again.";
         }
-        tokenWindow.webContents.send("set-initial-error", failureMessage);
+        if (tokenWindow && !tokenWindow.isDestroyed()) {
+          tokenWindow.webContents.send("set-initial-error", failureMessage);
+        }
+        // Re-arm the listener for the next submission attempt
+        ipcMain.once("submit-token", handleSubmitToken);
       }
-    });
+    };
 
-    tokenWindow.on("closed", () => {
+    const handleTokenWindowClosed = () => {
       // If the window is closed, the listener might still be waiting.
       // We remove it to prevent leaks and resolve false.
-      ipcMain.removeListener("submit-token", () => {});
+      ipcMain.removeListener("submit-token", handleSubmitToken);
       resolve(false);
-    });
+    };
+
+    ipcMain.once("submit-token", handleSubmitToken);
+    tokenWindow.on("closed", handleTokenWindowClosed);
   });
 }
 

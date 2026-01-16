@@ -1,7 +1,7 @@
 const { spawn } = require("child_process");
 const { app } = require("electron");
 const path = require("path");
-const { WAIT_TIMEOUT, SERVICE_NAME, MODEL_NAME } = require("./config");
+const { WAIT_TIMEOUT, SERVICE_NAME, MODEL_NAME, GITHUB_USER, GITHUB_REGISTRY } = require("./config");
 const { status, progress } = require("./utils");
 
 const DOCKER_COMPOSE_DIR = app.isPackaged
@@ -36,6 +36,44 @@ function exec(cmd, args = [], onData) {
     });
     child.on("error", (err) => {
       reject(err);
+    });
+  });
+}
+
+/**
+ * Securely logs into the GitHub Container Registry using a Personal Access Token.
+ * The token is passed via stdin to avoid exposing it in process lists.
+ * @param {string} token - The GitHub Personal Access Token.
+ * @returns {Promise<boolean>} - Resolves to true on successful login, false otherwise.
+ */
+function loginToGithubRegistry(token) {
+  return new Promise((resolve) => {
+    status("Logging into GitHub Container Registry…");
+    const child = spawn(
+      "docker",
+      ["login", GITHUB_REGISTRY, "-u", GITHUB_USER, "--password-stdin"],
+      {
+        cwd: DOCKER_COMPOSE_DIR,
+        env: process.env,
+      }
+    );
+
+    child.stdin.write(token);
+    child.stdin.end();
+
+    child.on("close", (code) => {
+      if (code === 0) {
+        console.log("Successfully logged into GitHub Container Registry.");
+        resolve(true);
+      } else {
+        console.error(`Docker login failed with exit code ${code}`);
+        resolve(false);
+      }
+    });
+
+    child.on("error", (err) => {
+      console.error("Docker login spawn error:", err);
+      resolve(false);
     });
   });
 }
@@ -185,4 +223,5 @@ module.exports = {
   waitForHealthy,
   stopCompose,
   pullModel,
+  loginToGithubRegistry,
 };

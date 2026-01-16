@@ -22,7 +22,8 @@
     "build:all": "electron-builder -mwl"
   },
   "dependencies": {
-    "electron-updater": "^6.1.7"
+    "electron-updater": "^6.1.7",
+    "electron-store": "^8.2.0"
   },
   "devDependencies": {
     "electron": "^30.0.0",

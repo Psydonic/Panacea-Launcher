@@ -4,12 +4,6 @@ const { safeStorage } = require('electron');
 const store = new Store();
 const TOKEN_KEY = 'github-pat-token';
 
-const Store = require('electron-store');
-const { safeStorage } = require('electron');
-
-const store = new Store();
-const TOKEN_KEY = 'github-pat-token';
-
 const auth = {
   /**
    * Encrypts and stores the GitHub PAT.
@@ -56,8 +50,5 @@ const auth = {
     store.delete(TOKEN_KEY);
   },
 };
-
-module.exports = auth;
-
 
 module.exports = auth;

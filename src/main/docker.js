@@ -44,7 +44,7 @@ function exec(cmd, args = [], onData) {
  * Securely logs into the GitHub Container Registry using a Personal Access Token.
  * The token is passed via stdin to avoid exposing it in process lists.
  * @param {string} token - The GitHub Personal Access Token.
- * @returns {Promise<boolean>} - Resolves to true on successful login, false otherwise.
+ * @returns {Promise<{success: boolean, reason: 'network' | 'auth' | 'unknown'}>} - Resolves with login status and reason.
  */
 function loginToGithubRegistry(token) {
   return new Promise((resolve) => {
@@ -58,22 +58,34 @@ function loginToGithubRegistry(token) {
       }
     );
 
+    let stderr = "";
+    child.stderr.on("data", (data) => {
+      stderr += data.toString();
+    });
+
     child.stdin.write(token);
     child.stdin.end();
 
     child.on("close", (code) => {
       if (code === 0) {
         console.log("Successfully logged into GitHub Container Registry.");
-        resolve(true);
+        resolve({ success: true, reason: null });
       } else {
-        console.error(`Docker login failed with exit code ${code}`);
-        resolve(false);
+        console.error(`Docker login failed with exit code ${code}. Stderr: ${stderr}`);
+        if (stderr.includes("net/http") || stderr.includes("dial tcp")) {
+          resolve({ success: false, reason: 'network' });
+        } else if (stderr.includes("denied") || stderr.includes("unauthorized")) {
+          resolve({ success: false, reason: 'auth' });
+        } else {
+          resolve({ success: false, reason: 'unknown' });
+        }
       }
     });
 
     child.on("error", (err) => {
       console.error("Docker login spawn error:", err);
-      resolve(false);
+      // A spawn error is likely a system/network issue
+      resolve({ success: false, reason: 'network' });
     });
   });
 }

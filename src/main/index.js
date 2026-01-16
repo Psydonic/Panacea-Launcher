@@ -9,6 +9,61 @@ process.env.APP_DATA_PATH = app.getPath("userData");
 
 app.isQuitting = false;
 
+/**
+ * Handles the entire GitHub PAT authentication flow.
+ * It tries to use a stored token, and if that fails or doesn't exist,
+ * it prompts the user for a new one.
+ * @returns {Promise<boolean>} - True if authentication is successful, false otherwise.
+ */
+async function handleAuthentication() {
+  let token = auth.getToken();
+  let loginResult = { success: false, reason: null };
+
+  if (token) {
+    loginResult = await loginToGithubRegistry(token);
+    if (loginResult.success) {
+      return true;
+    }
+    // If login fails, clear the invalid token unless it was a network issue
+    if (loginResult.reason !== 'network') {
+      auth.clearToken();
+    }
+  }
+
+  let errorMessage;
+  if (loginResult.reason === 'auth') {
+    errorMessage = "Stored token is invalid or expired. Please enter a new one.";
+  } else if (loginResult.reason === 'network') {
+    errorMessage = "Network error. Please check your internet and try again.";
+  }
+
+  const tokenWindow = createTokenWindow({ parent: getMainWindow(), errorMessage });
+
+  return new Promise(resolve => {
+    ipcMain.once('submit-token', async (event, newToken) => {
+      const submissionLoginResult = await loginToGithubRegistry(newToken);
+      if (submissionLoginResult.success) {
+        auth.setToken(newToken);
+        if (tokenWindow && !tokenWindow.isDestroyed()) {
+          tokenWindow.close();
+        }
+        resolve(true);
+      } else {
+        let failureMessage = 'Login failed. Please check the token and try again.';
+        if (submissionLoginResult.reason === 'network') {
+          failureMessage = 'Network error. Please check your internet and try again.';
+        }
+        tokenWindow.webContents.send('set-initial-error', failureMessage);
+      }
+    });
+
+    tokenWindow.on('closed', () => {
+      ipcMain.removeAllListeners('submit-token');
+      resolve(false); // Resolve with false if the user closes the window
+    });
+  });
+}
+
 /* ---------------- App lifecycle ---------------- */
 
 /**
@@ -18,77 +73,33 @@ app.isQuitting = false;
  */
 app.whenReady().then(async () => {
   createTray(app, getMainWindow);
-  createLoadingWindow();
-
-  setupUpdater();
-
-  if (!(await dockerInstalled())) {
-    showError("Docker is not installed.");
-    return;
-  }
-
-  ipcMain.handle('submit-token', async (event, token) => {
-    const success = await loginToGithubRegistry(token);
-    if (success) {
-      auth.setToken(token);
-      if (getTokenWindow()) {
-        getTokenWindow().webContents.send('submit-token-success', token);
-      }
-      return true;
-    } else {
-      auth.clearToken();
-      if (getTokenWindow()) {
-        getTokenWindow().webContents.send('submit-token-failure');
-      }
-      return false;
-    }
-  });
+  const loading = createLoadingWindow();
 
   try {
+    setupUpdater();
+
+    if (!(await dockerInstalled())) {
+      showError("Docker is not installed.");
+      return;
+    }
+    
     console.log("Checking Docker daemon…");
     await ensureDockerRunning();
+    
+    loading?.close(); // Close loading window before auth
+    const isAuthenticated = await handleAuthentication();
 
-    let token = auth.getToken();
-    let loggedIn = false;
-
-    while (!loggedIn) {
-      if (token) {
-        loggedIn = await loginToGithubRegistry(token);
-        if (!loggedIn) {
-          auth.clearToken(); // Clear expired/invalid token
-          token = null; // Ensure we prompt again
-          showError("Stored GitHub PAT is invalid or expired. Please re-enter.");
-          // Delay to allow user to read the error message before token window appears
-          await new Promise(resolve => setTimeout(resolve, 3000)); 
-        }
-      }
-
-      if (!loggedIn) {
-        // If no token or login failed, prompt the user for a new one
-        const tokenWindow = createTokenWindow(getMainWindow());
-        token = await new Promise(resolve => {
-          // Listen for a token to be successfully submitted via IPC
-          ipcMain.once('submit-token-success', (event, submittedToken) => {
-            resolve(submittedToken);
-          });
-          // If the token window is closed without submission, resolve with null
-          tokenWindow.on('closed', () => {
-            resolve(null);
-          });
-        });
-
-        if (!token) {
-          showError("GitHub PAT is required to proceed.");
-          return; // User closed the token window without providing a token
-        }
-        // Loop will re-attempt login with the new token
-      }
+    if (!isAuthenticated) {
+      showError("GitHub authentication is required to proceed.");
+      return;
     }
 
+    createLoadingWindow(); // Re-open for pulling model etc.
     await pullModel();
     await startCompose();
     await waitForHealthy();
     createMainWindow();
+
   } catch (err) {
     console.error(err);
     showError(err.message);

@@ -66,10 +66,10 @@ function createMainWindow() {
 
 /**
  * Creates the token input window.
- * @param {BrowserWindow} parentWindow - The parent window for the modal.
+ * @param {{parent: BrowserWindow, errorMessage?: string}} options - The parent window and an optional error message.
  * @returns {BrowserWindow} The token input window.
  */
-function createTokenWindow(parentWindow) {
+function createTokenWindow({ parent, errorMessage }) {
   if (loadingWindow && !loadingWindow.isDestroyed()) {
     loadingWindow.close();
   }
@@ -79,7 +79,7 @@ function createTokenWindow(parentWindow) {
     frame: true,
     resizable: false,
     modal: true,
-    parent: parentWindow || null, // Make it modal to the main window if it exists
+    parent: parent || null, // Make it modal to the main window if it exists
     webPreferences: {
       preload: path.join(__dirname, "../preload/tokenPreload.js"),
       nodeIntegration: false,
@@ -88,6 +88,12 @@ function createTokenWindow(parentWindow) {
   });
 
   tokenWindow.loadFile(path.join(__dirname, "../renderer/token.html"));
+
+  if (errorMessage) {
+    tokenWindow.webContents.on('did-finish-load', () => {
+      tokenWindow.webContents.send('set-initial-error', errorMessage);
+    });
+  }
 
   tokenWindow.on('closed', () => {
     tokenWindow = null;

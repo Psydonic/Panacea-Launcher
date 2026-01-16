@@ -1,1 +1,0 @@
-This is a termux environment, and so npm install of electron pacakges might fail.

@@ -22,12 +22,12 @@
     "build:all": "electron-builder -mwl"
   },
   "dependencies": {
-    "electron-updater": "^6.1.7",
-    "electron-store": "^8.2.0"
+    "electron-store": "^8.2.0",
+    "electron-updater": "^6.1.7"
   },
   "devDependencies": {
-    "electron": "^30.0.0",
-    "electron-builder": "^24.13.3",
+    "electron": "^40.0.0",
+    "electron-builder": "^26.4.0",
     "eslint": "^9.39.2",
     "eslint-plugin-n": "^17.23.1",
     "globals": "^16.5.0"

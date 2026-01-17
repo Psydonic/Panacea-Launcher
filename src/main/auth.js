@@ -4,6 +4,7 @@ const { status } = require('./utils');
 const { ipcMain } = require('electron');
 const { createTokenWindow, showError } = require('./windows');
 const { loginToGithubRegistry } = require('./docker');
+const { stat } = require('original-fs');
 
 const store = new Store();
 const TOKEN_KEY = 'github-pat-token';
@@ -62,6 +63,7 @@ const auth = {
  * If authentication fails, call show error and return false.
  */
 async function handleAuthentication() {
+  status("Authenticating with GitHub Container Registry…");
   let token = auth.getToken();
   let loginResult = { success: false, reason: null };
 

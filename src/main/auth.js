@@ -119,18 +119,18 @@ async function handleAuthentication() {
           tokenWindow.webContents.send("set-initial-error", failureMessage);
         }
         // Re-arm the listener for the next submission attempt
-        tokenWindow.once("submit-token", handleSubmitToken);
+        ipcMain.once("submit-token", handleSubmitToken);
       }
     };
 
     const handleTokenWindowClosed = () => {
       // If the window is closed, the listener might still be waiting.
       // We remove it to prevent leaks and resolve false.
-      tokenWindow.removeListener("submit-token", handleSubmitToken);
+      ipcMain.removeListener("submit-token", handleSubmitToken);
       reject(new Error("Token window was closed by the user."));
     };
 
-    tokenWindow.once("submit-token", handleSubmitToken);
+    ipcMain.once("submit-token", handleSubmitToken);
     tokenWindow.on("closed", handleTokenWindowClosed);
   });
 }

@@ -2,13 +2,14 @@ const Store = require('electron-store');
 const { safeStorage } = require('electron');
 const { status } = require('./utils');
 const { ipcMain } = require('electron');
-const { createTokenWindow, showError } = require('./windows');
+const { createTokenWindow } = require('./windows');
 const { loginToGithubRegistry } = require('./docker');
-const { stat } = require('original-fs');
 
+// Initialize electron-store
 const store = new Store();
 const TOKEN_KEY = 'github-pat-token';
 
+// Authentication utility object
 const auth = {
   /**
    * Encrypts and stores the GitHub PAT.
@@ -89,8 +90,9 @@ async function handleAuthentication() {
   // Make the token window modal to the loading window to prevent UI flicker
   const tokenWindow = createTokenWindow({ errorMessage });
 
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const handleSubmitToken = async (event, newToken) => {
+      status("Logging into GitHub Container Registry…");
       const submissionLoginResult = await loginToGithubRegistry(newToken);
       if (submissionLoginResult.success) {
         try {
@@ -104,8 +106,7 @@ async function handleAuthentication() {
           if (tokenWindow && !tokenWindow.isDestroyed()) {
             tokenWindow.close();
           }
-          showError(err.message);
-          resolve(false);
+          reject(err);
         }
       } else {
         let failureMessage =
@@ -118,18 +119,18 @@ async function handleAuthentication() {
           tokenWindow.webContents.send("set-initial-error", failureMessage);
         }
         // Re-arm the listener for the next submission attempt
-        ipcMain.once("submit-token", handleSubmitToken);
+        tokenWindow.once("submit-token", handleSubmitToken);
       }
     };
 
     const handleTokenWindowClosed = () => {
       // If the window is closed, the listener might still be waiting.
       // We remove it to prevent leaks and resolve false.
-      ipcMain.removeListener("submit-token", handleSubmitToken);
-      resolve(false);
+      tokenWindow.removeListener("submit-token", handleSubmitToken);
+      reject(new Error("Token window was closed by the user."));
     };
 
-    ipcMain.once("submit-token", handleSubmitToken);
+    tokenWindow.once("submit-token", handleSubmitToken);
     tokenWindow.on("closed", handleTokenWindowClosed);
   });
 }

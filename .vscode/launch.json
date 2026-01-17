@@ -11,6 +11,9 @@
             "name": "Electron Main",
             "cwd": "${workspaceFolder}",
             "args": ["."],
+            "env": {
+                "XDG_CURRENT_DESKTOP": "GNOME"
+            },
             "outputCapture": "std",
             "program": "${workspaceFolder}/node_modules/.bin/electron",
         }

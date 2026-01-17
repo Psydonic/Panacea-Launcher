@@ -166,16 +166,18 @@ function sleep(ms) {
 }
 
 /**
- * Checks if docker is installed.
- * @returns {Promise<boolean>} - A promise that resolves with true if docker is installed, false otherwise.
+ * Checks if docker is installed (return void)
+ * @throws {Error} If an unexpected error occurs while checking for Docker or if Docker is not installed.
  */
 async function dockerInstalled() {
-  try {
-    await exec("docker", ["--version"]);
-    return true;
-  } catch {
-    return false;
-  }
+  status("Checking for Docker installation…");
+  await exec("docker", ["--version"]).catch((err) => {
+    if (err.message.includes("ENOENT")) {
+      throw new Error("Docker is not installed.");
+    } else {
+      throw new Error(`Error checking Docker installation: ${err.message}`);
+    }
+  });
 }
 
 /**

@@ -1,91 +1,18 @@
 const { app, ipcMain } = require("electron");
-const { dockerInstalled, pullModel, ensureDockerRunning, startCompose, waitForHealthy, stopCompose, loginToGithubRegistry } = require("./docker");
-const { createLoadingWindow, showError, createMainWindow, getMainWindow, createTokenWindow } = require("./windows");
+const { dockerInstalled, pullModel, ensureDockerRunning, startCompose, waitForHealthy, stopCompose } = require("./docker");
+const { createLoadingWindow, showError, createMainWindow, getMainWindow, getLoadingWindow } = require("./windows");
 const { createTray } = require("./tray");
 const { setupUpdater } = require("./updater");
-const auth = require("./auth");
+const { handleAuthentication } = require("./auth");
 const { status } = require("./utils");
 
 process.env.APP_DATA_PATH = app.getPath("userData");
 
+// Global error handlers
+process.on("uncaughtException", handleFatalError);
+process.on("unhandledRejection", handleFatalError);
+
 app.isQuitting = false;
-
-/**
- * Handles the entire GitHub PAT authentication flow.
- * It tries to use a stored token, and if that fails or doesn't exist,
- * it prompts the user for a new one.
- * @returns {Promise<boolean>} - True if authentication is successful, false otherwise.
- */
-async function handleAuthentication() {
-  let token = auth.getToken();
-  let loginResult = { success: false, reason: null };
-
-  if (token) {
-    loginResult = await loginToGithubRegistry(token);
-    if (loginResult.success) {
-      return true;
-    }
-    // If login fails, clear the invalid token unless it was a network issue
-    if (loginResult.reason !== 'network') {
-      auth.clearToken();
-    }
-  }
-
-  status("Awaiting GitHub authentication...");
-  let errorMessage;
-  if (loginResult.reason === 'auth') {
-    errorMessage = "Stored token is invalid or expired. Please enter a new one.";
-  } else if (loginResult.reason === 'network') {
-    errorMessage = "Network error. Please check your internet and try again.";
-  }
-
-  // Make the token window modal to the loading window to prevent UI flicker
-  const tokenWindow = createTokenWindow({ errorMessage });
-
-  return new Promise((resolve) => {
-    const handleSubmitToken = async (event, newToken) => {
-      const submissionLoginResult = await loginToGithubRegistry(newToken);
-      if (submissionLoginResult.success) {
-        try {
-          auth.setToken(newToken);
-          if (tokenWindow && !tokenWindow.isDestroyed()) {
-            tokenWindow.close();
-          }
-          resolve(true);
-        } catch (err) {
-          // This happens if safeStorage is unavailable
-          showError(err.message);
-          if (tokenWindow && !tokenWindow.isDestroyed()) {
-            tokenWindow.close();
-          }
-          resolve(false);
-        }
-      } else {
-        let failureMessage =
-          "Login failed. Please check the token and try again.";
-        if (submissionLoginResult.reason === "network") {
-          failureMessage =
-            "Network error. Please check your internet and try again.";
-        }
-        if (tokenWindow && !tokenWindow.isDestroyed()) {
-          tokenWindow.webContents.send("set-initial-error", failureMessage);
-        }
-        // Re-arm the listener for the next submission attempt
-        ipcMain.once("submit-token", handleSubmitToken);
-      }
-    };
-
-    const handleTokenWindowClosed = () => {
-      // If the window is closed, the listener might still be waiting.
-      // We remove it to prevent leaks and resolve false.
-      ipcMain.removeListener("submit-token", handleSubmitToken);
-      resolve(false);
-    };
-
-    ipcMain.once("submit-token", handleSubmitToken);
-    tokenWindow.on("closed", handleTokenWindowClosed);
-  });
-}
 
 /* ---------------- App lifecycle ---------------- */
 
@@ -96,46 +23,66 @@ async function handleAuthentication() {
  */
 app.whenReady().then(async () => {
   createTray(app, getMainWindow);
-  createLoadingWindow();
+  await createLoadingWindow();
+  status("Initializing…");
 
   try {
     setupUpdater();
 
-    if (!(await dockerInstalled())) {
-      showError("Docker is not installed.");
-      return;
-    }
+    console.log("Checking Docker installation…");
+    await dockerInstalled();
+    console.log("Docker is installed.");
     
     console.log("Checking Docker daemon…");
     await ensureDockerRunning();
+    console.log("Docker is running.");
     
-    const isAuthenticated = await handleAuthentication();
+    console.log("Starting authentication flow…");
+    await handleAuthentication();
+    console.log("Authentication successful.");
 
-    if (!isAuthenticated) {
-      // showError will close the loading window and show the error window
-      showError("GitHub authentication is required to proceed.");
-      return;
-    }
-
+    console.log("Pulling model and starting services…");
     await pullModel();
+    console.log("Model pulled.");
+
+    console.log("Starting services…");
     await startCompose();
+    console.log("Services started. Waiting for healthy status…");
     await waitForHealthy();
+
+    console.log("Services are healthy. Launching main window…");
     createMainWindow(); // This closes the loading window
 
   } catch (err) {
-    console.error(err);
-    showError(err.message);
+    handleFatalError(err);
   }
 });
+
+// handle fatal error function
+function handleFatalError(err) {
+  console.error("Fatal error:", err);
+  showError(err.message);
+}
 
 /**
  * Emitted before the application starts closing its windows.
  * Calling event.preventDefault() will prevent the default behavior, which is terminating the application.
+ * The loading screen will be shown while the services are being stopped.
  */
 app.on("before-quit", async (e) => {
+  console.log("Quitting application...");
   if (app.isQuitting) return;
   e.preventDefault();
   app.isQuitting = true;
+  
+  // Show loading window while stopping services (might exist already)
+  let loadingWindow = getLoadingWindow();
+  if (!loadingWindow) {
+    loadingWindow = await createLoadingWindow();
+  }
+  status("Shutting down services…");
+
+  // Stop services and then quit
   await stopCompose();
   app.quit();
 });
@@ -146,5 +93,6 @@ app.on("before-quit", async (e) => {
  * However, we want to keep the tray app alive, so we prevent the default behavior.
  */
 app.on("window-all-closed", (e) => {
+  console.log("All windows closed.");
   e.preventDefault(); // keep tray app alive
 });

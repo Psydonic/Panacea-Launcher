@@ -8,7 +8,7 @@ let tokenWindow;
 
 /**
  * Creates the loading window.
- * @returns {BrowserWindow} - The loading window.
+ * @returns {Promise<BrowserWindow>} - The loading window.
  */
 function createLoadingWindow() {
   loadingWindow = new BrowserWindow({
@@ -26,18 +26,30 @@ function createLoadingWindow() {
   loadingWindow.on("closed", () => {
     loadingWindow = null;
   });
-  return loadingWindow;
+  return new Promise((resolve) => {
+    loadingWindow.webContents.on("did-finish-load", () => {
+      resolve(loadingWindow);
+    });
+  });
 }
 
 /**
- * Shows an error message in the loading window.
+ * Shows an error message in a popup dialog. And closes the loading window if it exists.
+ * Then shuts down the app.
  * @param {string} message - The error message to show.
  */
 function showError(message) {
-  if (!loadingWindow || loadingWindow.isDestroyed()) return;
-  loadingWindow.loadFile(path.join(__dirname, "../renderer/error.html"), {
-    query: { message },
-  });
+
+  // close main window if it exists
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.close();
+  }
+
+  // Show error dialog and quit app
+  const { dialog } = require("electron");
+  dialog.showErrorBox("Error", message);
+
+  app.quit();
 }
 
 /**

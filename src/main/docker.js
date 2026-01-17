@@ -1,7 +1,7 @@
 const { spawn } = require("child_process");
 const { app } = require("electron");
 const path = require("path");
-const { WAIT_TIMEOUT, SERVICE_NAME, MODEL_NAME, GITHUB_USER, GITHUB_REGISTRY } = require("./config");
+const { WAIT_TIMEOUT, SERVICE_NAME, MODEL_NAME, GITHUB_REGISTRY } = require("./config");
 const { status, progress } = require("./utils");
 
 const DOCKER_COMPOSE_DIR = app.isPackaged

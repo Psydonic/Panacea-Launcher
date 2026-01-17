@@ -34,13 +34,13 @@ app.whenReady().then(async () => {
     console.log("Docker is running.");
     
     console.log("Starting authentication flow…");
-    (await handleAuthentication()).then(() => {
-      console.log("Authentication flow completed.");
-    }).catch((err) => {
-      throw new Error(`Authentication failed: ${err.message}`);
-    });
+    const authSuccess = await handleAuthentication();
+    if (!authSuccess) {
+      throw new Error("Authentication failed or was cancelled by the user.");
+    }
+    console.log("Authentication successful.");
 
-    console.log("Pulling model and starting services…");
+    console.log("Pulling model...");
     await pullModel();
     console.log("Model pulled.");
 

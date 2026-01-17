@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
   const patInput = document.getElementById('patInput');
+  const usernameInput = document.getElementById('usernameInput');
   const submitButton = document.getElementById('submitPat');
   const errorMessage = document.getElementById('errorMessage');
 
@@ -12,7 +13,8 @@ document.addEventListener('DOMContentLoaded', () => {
     submitButton.disabled = false;
     submitButton.textContent = 'Submit';
     patInput.value = '';
-    patInput.focus();
+    usernameInput.value = '';
+    usernameInput.focus();
   };
   
   // Listen for an initial error message from the main process
@@ -22,19 +24,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
   submitButton.addEventListener('click', () => {
     const pat = patInput.value.trim();
-    if (pat) {
+    const username = usernameInput.value.trim();
+    if (pat && username) {
       errorMessage.textContent = '';
       submitButton.disabled = true;
       submitButton.textContent = 'Submitting...';
-      window.api.submitToken(pat);
+      window.api.submitToken(username, pat);
     } else {
       errorMessage.textContent = 'Please enter your GitHub PAT.';
     }
   });
 
-  patInput.addEventListener('keypress', (event) => {
-    if (event.key === 'Enter') {
-      submitButton.click();
-    }
+  [usernameInput, patInput].forEach((input) => {
+    input.addEventListener('keypress', (event) => {
+      if (event.key === 'Enter') {
+        submitButton.click();
+      }
+    });
   });
 });

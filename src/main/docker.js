@@ -1,7 +1,7 @@
 const { spawn } = require("child_process");
 const { app } = require("electron");
 const path = require("path");
-const { WAIT_TIMEOUT, SERVICE_NAME, MODEL_NAME, GITHUB_USER, GITHUB_REGISTRY } = require("./config");
+const { WAIT_TIMEOUT, SERVICE_NAME, MODEL_NAME, GITHUB_REGISTRY } = require("./config");
 const { status, progress } = require("./utils");
 
 const DOCKER_COMPOSE_DIR = app.isPackaged
@@ -46,12 +46,12 @@ function exec(cmd, args = [], onData) {
  * @param {string} token - The GitHub Personal Access Token.
  * @returns {Promise<{success: boolean, reason: 'network' | 'auth' | 'unknown'}>} - Resolves with login status and reason.
  */
-function loginToGithubRegistry(token) {
+function loginToGithubRegistry(username, token) {
   return new Promise((resolve) => {
     status("Logging into GitHub Container Registry…");
     const child = spawn(
       "docker",
-      ["login", GITHUB_REGISTRY, "-u", GITHUB_USER, "--password-stdin"],
+      ["login", GITHUB_REGISTRY, "-u", username, "--password-stdin"],
       {
         cwd: DOCKER_COMPOSE_DIR,
         env: process.env,

@@ -88,7 +88,7 @@ function createMainWindow() {
 function createTokenWindow({ errorMessage }) {
   tokenWindow = new BrowserWindow({
     width: 500,
-    height: 350,
+    height: 400,
     frame: true,
     resizable: false,
     modal: true,

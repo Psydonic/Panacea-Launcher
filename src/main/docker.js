@@ -166,21 +166,6 @@ function sleep(ms) {
 }
 
 /**
- * Checks if docker is installed (return void)
- * @throws {Error} If an unexpected error occurs while checking for Docker or if Docker is not installed.
- */
-async function dockerInstalled() {
-  status("Checking for Docker installation…");
-  await exec("docker", ["--version"]).catch((err) => {
-    if (err.message.includes("ENOENT")) {
-      throw new Error("Docker is not installed.");
-    } else {
-      throw new Error(`Error checking Docker installation: ${err.message}`);
-    }
-  });
-}
-
-/**
  * Ensures that docker is running.
  * @returns {Promise<void>} - A promise that resolves when docker is running.
  */
@@ -202,13 +187,21 @@ async function ensureDockerRunning() {
       } else if (process.platform === "darwin") {
         await exec("open", ["-a", "Docker"]);
       } else {
-        await exec("systemctl", ["start", "docker"]);
+        // Figure out if this is WSL
+        const isWSL = await exec("uname", ["-a"]).then(output => output.toLowerCase().includes("microsoft"));
+        if (isWSL) {
+          // Start Docker Desktop from Windows
+          exec("/mnt/c/Program Files/Docker/Docker/Docker Desktop.exe", [], { detached: true });
+        } else {
+          // Assume Linux systemd
+          await exec("systemctl", ["start", "docker"]);
+        }
       }
       await sleep(2000);
     }
   }
 
-  throw new Error("Docker did not start in time");
+  throw new Error("Docker is not installed or did not start in time");
 }
 
 // Function to pull configured model from ./config
@@ -231,7 +224,6 @@ async function pullModel() {
   
 
 module.exports = {
-  dockerInstalled,
   ensureDockerRunning,
   startCompose,
   waitForHealthy,

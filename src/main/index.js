@@ -1,5 +1,5 @@
 const { app, ipcMain } = require("electron");
-const { dockerInstalled, pullModel, ensureDockerRunning, startCompose, waitForHealthy, stopCompose } = require("./docker");
+const { pullModel, ensureDockerRunning, startCompose, waitForHealthy, stopCompose } = require("./docker");
 const { createLoadingWindow, showError, createMainWindow, getMainWindow, getLoadingWindow } = require("./windows");
 const { createTray } = require("./tray");
 const { setupUpdater } = require("./updater");
@@ -29,10 +29,6 @@ app.whenReady().then(async () => {
   try {
     setupUpdater();
 
-    console.log("Checking Docker installation…");
-    await dockerInstalled();
-    console.log("Docker is installed.");
-    
     console.log("Checking Docker daemon…");
     await ensureDockerRunning();
     console.log("Docker is running.");

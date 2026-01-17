@@ -46,12 +46,12 @@ function exec(cmd, args = [], onData) {
  * @param {string} token - The GitHub Personal Access Token.
  * @returns {Promise<{success: boolean, reason: 'network' | 'auth' | 'unknown'}>} - Resolves with login status and reason.
  */
-function loginToGithubRegistry(token) {
+function loginToGithubRegistry(username, token) {
   return new Promise((resolve) => {
     status("Logging into GitHub Container Registry…");
     const child = spawn(
       "docker",
-      ["login", GITHUB_REGISTRY, "-u", GITHUB_USER, "--password-stdin"],
+      ["login", GITHUB_REGISTRY, "-u", username, "--password-stdin"],
       {
         cwd: DOCKER_COMPOSE_DIR,
         env: process.env,

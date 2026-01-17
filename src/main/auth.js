@@ -9,8 +9,26 @@ const { loginToGithubRegistry } = require('./docker');
 const store = new Store();
 const TOKEN_KEY = 'github-pat-token';
 
+const USERNAME_KEY = 'github-username';
+
 // Authentication utility object
 const auth = {
+  /**
+   * Stores the GitHub username.
+   * @param {string} username - The GitHub username.
+   */
+  setUsername: (username) => {
+    store.set(USERNAME_KEY, username);
+  },
+
+  /**
+   * Retrieves the GitHub username.
+   * @returns {string | null} The GitHub username or null if not set.
+   */
+  getUsername: () => {
+    return store.get(USERNAME_KEY);
+  },
+
   /**
    * Encrypts and stores the GitHub PAT.
    * Throws an error if encryption is not available.
@@ -44,16 +62,17 @@ const auth = {
       return safeStorage.decryptString(encryptedToken);
     } catch (error) {
       console.error('Failed to decrypt token:', error);
-      auth.clearToken(); // Clear potentially corrupted token
+      auth.clearCredentials(); // Clear potentially corrupted token
       return null;
     }
   },
 
   /**
-   * Clears the stored GitHub PAT.
+   * Clears the stored GitHub PAT and username.
    */
-  clearToken: () => {
+  clearCredentials: () => {
     store.delete(TOKEN_KEY);
+    store.delete(USERNAME_KEY);
   },
 };
 
@@ -66,16 +85,17 @@ const auth = {
 async function handleAuthentication() {
   status("Authenticating with GitHub Container Registry…");
   let token = auth.getToken();
+  let username = auth.getUsername();
   let loginResult = { success: false, reason: null };
 
-  if (token) {
-    loginResult = await loginToGithubRegistry(token);
+  if (token && username) {
+    loginResult = await loginToGithubRegistry(username, token);
     if (loginResult.success) {
       return true;
     }
     // If login fails, clear the invalid token unless it was a network issue
     if (loginResult.reason !== 'network') {
-      auth.clearToken();
+      auth.clearCredentials();
     }
   }
 
@@ -91,12 +111,13 @@ async function handleAuthentication() {
   const tokenWindow = createTokenWindow({ errorMessage });
 
   return new Promise((resolve, reject) => {
-    const handleSubmitToken = async (event, newToken) => {
+    const handleSubmitToken = async (event, { username, token }) => {
       status("Logging into GitHub Container Registry…");
-      const submissionLoginResult = await loginToGithubRegistry(newToken);
+      const submissionLoginResult = await loginToGithubRegistry(username, token);
       if (submissionLoginResult.success) {
         try {
-          auth.setToken(newToken);
+          auth.setUsername(username);
+          auth.setToken(token);
           if (tokenWindow && !tokenWindow.isDestroyed()) {
             tokenWindow.close();
           }
